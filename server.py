@@ -1,18 +1,28 @@
 import mincemeat
 import glob
 import csv
+import argparse
 
 # LOAD FILES PATH
 text_files = glob.glob('./texts/*')
+
+# PARAMETERS
+parser = argparse.ArgumentParser()
+parser.add_argument('--authors',
+                    nargs='+',
+                    help='name of authors like "Grzegorz Rozenberg" "Philip S. Yu"',
+                    default=[]
+                    )
 
 
 def file_contents(filename):
     with open(filename) as fp:
         return fp.read()
 
+
 source = dict(
     (filename, file_contents(filename))
-     for filename in text_files
+    for filename in text_files
 )
 
 
@@ -51,6 +61,7 @@ def reducefn(k, v):
 
     return Counter(v)
 
+
 s = mincemeat.Server()
 
 s.datasource = source
@@ -59,7 +70,19 @@ s.reducefn = reducefn
 
 results = s.run_server(password="changeme")
 
+# Write a CSV
 w = csv.writer(open("authors_most_frequently_words.csv", "w"))
 
 for author, countered_words in results.items():
     w.writerow([author, countered_words])
+
+# Print selected authors
+
+args = parser.parse_args()
+
+if args.authors:
+    for author in args.authors:
+        print("\nAuthor: %s" % author)
+        print("==== Frequently Words")
+        for word, frequency in results[author].most_common():
+            print("======== %s - %d times" % (word, frequency))
